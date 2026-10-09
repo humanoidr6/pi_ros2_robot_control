@@ -13,19 +13,14 @@ class ObstacleAvoidance(Node):
             10)
         self.publisher = self.create_publisher(Twist, '/cmd_vel', 10)
         
-        # Configuration
-        self.safe_distance = 0.5  # meters
-        self.forward_speed = 0.3  # m/s
-        self.turn_speed = 0.5     # rad/s
+        self.safe_distance = 0.5
+        self.forward_speed = 0.3
+        self.turn_speed = 0.5
 
         self.get_logger().info('Obstacle Avoidance Node started.')
 
     def scan_callback(self, msg):
-        # The YDLidar scans 360 degrees. Let's look at the front cone (-30 to +30 degrees)
-        # Check angle_min, angle_max, angle_increment to find indices.
-        # For simplicity, assuming index 0 is front, or finding the minimum distance overall.
         
-        # Filter out 0.0 ranges (errors or out of bounds)
         valid_ranges = [r for r in msg.ranges if r > 0.05 and r < float('inf')]
         
         if not valid_ranges:
