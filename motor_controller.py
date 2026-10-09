@@ -12,24 +12,19 @@ class MotorController(Node):
     def __init__(self):
         super().__init__('motor_controller')
         
-        # Configuration
-        self.declare_parameter('wheel_base', 0.2) # meters
+        self.declare_parameter('wheel_base', 0.2)
         self.wheel_base = self.get_parameter('wheel_base').value
         
-        # Define GPIO pins (BCM numbering)
-        # Motor A (Left)
         self.L_EN_A = 17
         self.R_EN_A = 27
-        self.L_PWM_A = 22 # Reverse
-        self.R_PWM_A = 10 # Forward
+        self.L_PWM_A = 22
+        self.R_PWM_A = 10
         
-        # Motor B (Right)
         self.L_EN_B = 9
         self.R_EN_B = 11
-        self.L_PWM_B = 5  # Reverse
-        self.R_PWM_B = 6  # Forward
+        self.L_PWM_B = 5
+        self.R_PWM_B = 6
         
-        # Setup GPIO
         if GPIO:
             GPIO.setmode(GPIO.BCM)
             GPIO.setwarnings(False)
@@ -40,13 +35,11 @@ class MotorController(Node):
                 GPIO.setup(pin, GPIO.OUT)
                 GPIO.output(pin, GPIO.LOW)
                 
-            # Enable the drivers
             GPIO.output(self.L_EN_A, GPIO.HIGH)
             GPIO.output(self.R_EN_A, GPIO.HIGH)
             GPIO.output(self.L_EN_B, GPIO.HIGH)
             GPIO.output(self.R_EN_B, GPIO.HIGH)
             
-            # Setup PWM at 1kHz
             self.pwm_LA = GPIO.PWM(self.L_PWM_A, 1000)
             self.pwm_RA = GPIO.PWM(self.R_PWM_A, 1000)
             self.pwm_LB = GPIO.PWM(self.L_PWM_B, 1000)
@@ -97,17 +90,11 @@ class MotorController(Node):
         v = msg.linear.x
         w = msg.angular.z
         
-        # Differential drive kinematics
-        # v = (v_right + v_left) / 2
-        # w = (v_right - v_left) / wheel_base
-        # Therefore:
         v_left = v - (w * self.wheel_base / 2.0)
         v_right = v + (w * self.wheel_base / 2.0)
         
-        # For simplicity, assuming max speed is 1.0 m/s for scaling
         max_speed = 1.0 
         
-        # Scale to -1.0 to 1.0
         left_cmd = v_left / max_speed
         right_cmd = v_right / max_speed
         
