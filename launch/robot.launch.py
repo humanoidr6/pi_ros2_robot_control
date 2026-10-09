@@ -4,7 +4,6 @@ from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
 
 def generate_launch_description():
-    # YDLidar Node (assumes ydlidar_ros2_driver is built and parameter file exists)
     ydlidar_node = Node(
         package='ydlidar_ros2_driver',
         executable='ydlidar_ros2_driver_node',
@@ -36,7 +35,6 @@ def generate_launch_description():
         }]
     )
 
-    # Motor Controller Node
     motor_node = Node(
         package='robot_control',
         executable='motor_controller',
@@ -44,7 +42,6 @@ def generate_launch_description():
         output='screen'
     )
 
-    # Encoder Node
     encoder_node = Node(
         package='robot_control',
         executable='encoder_node',
@@ -52,7 +49,6 @@ def generate_launch_description():
         output='screen'
     )
 
-    # Obstacle Avoidance Node
     avoidance_node = Node(
         package='robot_control',
         executable='obstacle_avoidance',
@@ -60,8 +56,6 @@ def generate_launch_description():
         output='screen'
     )
 
-    # Static Transform Publisher (base_link -> laser_frame)
-    # Allows ROS to know where the LiDAR is relative to the center of the robot
     tf_node = Node(
         package='tf2_ros',
         executable='static_transform_publisher',
