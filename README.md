@@ -1,49 +1,44 @@
-# Raspberry Pi ROS 2 Differential Drive Robot
+# Differential Drive ROS 2 Robot
 
-This repository contains the software and hardware configuration for a differential drive robot built around a Raspberry Pi, IBT_2 Motor Drivers, Quadrature Encoders, and a YDLidar X2. It runs on ROS 2 (Humble/Iron) using custom Python nodes for low-level hardware control and obstacle avoidance.
+This repository contains the control stack for a custom differential drive robot. The hardware relies on a Raspberry Pi 4 operating as the primary compute unit, interfacing with BTS7960/IBT-2 motor drivers, Hall-effect quadrature encoders, and a YDLidar X2.
 
-## Hardware Components
+## System Architecture
 
-1. **Compute**: Raspberry Pi 4 (Ubuntu 22.04, ROS 2)
-2. **Motor Drivers**: 2x BTS7960 / IBT_2 High-Current Motor Drivers
-3. **Motors & Odometry**: 2x DC Motors with Hall-effect Quadrature Encoders
-4. **Lidar**: YDLidar X2 (connected via USB serial)
+The software is structured as a standard ROS 2 package (`robot_control`) that abstracts the hardware into individual nodes. This modular approach separates hardware interfacing from higher-level logic.
 
-## Software Architecture
+### 1. Motor Control (`motor_controller.py`)
+The motor controller node translates velocity commands into hardware signals. It subscribes to the `/cmd_vel` topic (type: `geometry_msgs/Twist`). The differential drive kinematics equation determines the target velocity for the left and right tracks. These velocities scale to a PWM duty cycle (0-100%). The node utilizes `RPi.GPIO` to generate 1kHz PWM signals on the specific pins wired to the IBT-2 drivers, dictating both speed and direction.
 
-The system is organized into a ROS 2 package named `robot_control` containing the following nodes:
+### 2. Odometry & Encoders (`encoder_node.py`)
+This node tracks wheel rotation to provide feedback for position estimation. It registers hardware interrupts on the Raspberry Pi GPIO pins connected to the Hall-effect sensors. The node increments or decrements a tick counter based on the quadrature phase (Phase A vs Phase B). The tick count is periodically published as odometry data, forming the basis for closed-loop control or mapping.
 
-- **`motor_controller.py`**: Subscribes to `/cmd_vel` (`geometry_msgs/msg/Twist`) and translates linear and angular velocities into PWM duty cycles for the left and right IBT_2 motor drivers using RPi.GPIO.
-- **`encoder_node.py`**: Reads hardware interrupts from the quadrature encoders on the GPIO pins to track wheel rotation and publish odometry/tick data.
-- **`obstacle_avoidance.py`**: Subscribes to `/scan` (`sensor_msgs/msg/LaserScan`) from the YDLidar and publishes emergency stop or rotation commands to `/cmd_vel` if an obstacle is detected within a configured safe distance.
-- **`ydlidar_ros2_driver_node`**: Official ROS 2 driver for the YDLidar, configured via `X2.yaml`.
+### 3. Obstacle Avoidance (`obstacle_avoidance.py`)
+A reactive safety layer. The node subscribes to the `/scan` topic provided by the YDLidar driver with a `BEST_EFFORT` QoS profile. It evaluates the distance measurements in the front cone. If an object falls within the defined safety threshold, it preempts standard navigation by publishing a zero linear velocity and a fixed angular velocity to `/cmd_vel`, forcing the robot to pivot until the path is clear.
 
-## Installation & Setup
+### 4. Lidar Integration
+The `ydlidar_ros2_driver_node` handles serial communication with the YDLidar X2. The driver converts the proprietary serial protocol into standard `sensor_msgs/LaserScan` messages. A static transform publisher links the `base_link` frame to the `laser_frame` to maintain a correct tf tree.
 
-1. **System Dependencies**: Run `install_deps.sh` to install necessary ROS 2 packages and Python libraries (`RPi.GPIO`).
-2. **Build Workspace**:
+## Installation
+
+1. Execute `install_deps.sh` to install ROS 2 dependencies and the `RPi.GPIO` library.
+2. Clone the repository into a ROS 2 workspace (e.g., `~/robot_ws/src/robot_control`).
+3. Build the workspace:
    ```bash
-   mkdir -p ~/robot_ws/src
-   # Copy this repository's contents into ~/robot_ws/src/robot_control
    cd ~/robot_ws
-   colcon build
+   colcon build --packages-select robot_control
    source install/setup.bash
    ```
 
-## Launch Instructions
+## Execution
 
-The primary launch file brings up the Lidar, Motor Controller, Encoder Node, Obstacle Avoidance node, and necessary static transforms.
-
+Bring up the entire stack, including motor control, encoders, lidar, and obstacle avoidance:
 ```bash
 ros2 launch robot_control robot.launch.py
 ```
 
-To run only the Lidar without activating the motors:
-
+To isolate the lidar subsystem for testing:
 ```bash
 ros2 launch robot_control lidar_only.launch.py
 ```
 
-## Hardware Wiring
-
-Refer to `wiring_guide.md` for a complete pinout mapping connecting the Raspberry Pi GPIOs to the IBT_2 drivers and encoder sensors.
+See `wiring_guide.md` for the exact pinout and electrical constraints.
