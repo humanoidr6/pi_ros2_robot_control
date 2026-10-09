@@ -89,3 +89,8 @@ The tables below detail the GPIO pin mappings and power distribution requirement
 - **Common Ground Requirement:** The logic ground (GND) on both IBT-2 drivers must be tied directly to a ground pin on the Raspberry Pi. The main battery ground must share this reference. Failure to establish a common ground results in floating PWM signals and erratic motor behavior.
 - **High Current Isolation:** Route main battery power (+12V/24V) directly to the B+ and B- terminals on the IBT-2 blocks. Route the M+ and M- terminals directly to the motors. Do not route high-current battery power through the Raspberry Pi or its breadboard rails.
 - **Logic Level Constraints:** The Raspberry Pi GPIO pins operate at 3.3V. While the IBT-2 logic inputs (VCC) are 5V tolerant, supplying them with 3.3V from the Pi ensures the PWM and Enable signals are interpreted correctly without requiring dedicated logic level shifting circuitry.
+
+## Author / Creator
+
+**B Jithendra**  
+Contact: [b.jithendra31@gmail.com](mailto:b.jithendra31@gmail.com)
