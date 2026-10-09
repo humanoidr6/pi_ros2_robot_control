@@ -11,11 +11,9 @@ class EncoderNode(Node):
     def __init__(self):
         super().__init__('encoder_node')
         
-        # Left Motor Encoder Pins
         self.ENC_L_A = 23
         self.ENC_L_B = 24
         
-        # Right Motor Encoder Pins
         self.ENC_R_A = 25
         self.ENC_R_B = 8
         
@@ -41,7 +39,6 @@ class EncoderNode(Node):
         self.timer = self.create_timer(0.1, self.timer_callback)
         
     def left_callback(self, channel):
-        # Read phase B to determine direction
         if GPIO.input(self.ENC_L_B):
             self.ticks_l += 1
         else:
