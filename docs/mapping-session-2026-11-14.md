@@ -50,3 +50,25 @@ separate motor battery.
    is understood.
 
 No passwords or Tailscale credentials are stored in this repository.
+
+## Handoff for the next session
+
+- GitHub `main` contains the mapping notes, bounded drive script, wheel test
+  script, and an early map image. The local checkout is
+  `/home/spirit/pi_ros2_robot_control`.
+- The new laptop's Linux login is `krishna@laptop-o5rgnbqb`; its checkout is
+  `/home/krishna/pi_ros2_robot_control`. It was copied before this documentation
+  commit and still needs a `git pull` when reachable.
+- The Pi is `robot@robot` on Tailscale. Its ROS 2 Humble workspace is
+  `/home/robot/robot_ws`. Its active source package has mapping launch and
+  Cartographer config files that were not yet copied into the GitHub checkout.
+- The latest map saved on the Pi is
+  `/home/robot/maps/autonomous_mapping_2026-11-14_latest.yaml` with the matching
+  `.pgm`. The image in this repository is an earlier snapshot.
+- At the end of the session, the Pi and new laptop were offline on Tailscale.
+  Their ROS process state should be checked fresh when they reconnect.
+- The person at the robot confirmed that neither wheel physically moved during
+  a 40% PWM pulse. Do not infer movement from left encoder ticks. Start the next
+  session by checking the separate motor battery voltage at both IBT-2 drivers,
+  then the common ground, enables, PWM wiring, and motor leads. Continue mapping
+  only after wheel motion is confirmed in person.
