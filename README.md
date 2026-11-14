@@ -41,6 +41,21 @@ To isolate the lidar subsystem for testing:
 ros2 launch robot_control lidar_only.launch.py
 ```
 
+### Mapping and wheel diagnostics (14 November 2026)
+
+The Raspberry Pi has a separate LiDAR-only Cartographer mapping launch file. The
+mapping work and wheel tests from 14 November are recorded in
+[`docs/mapping-session-2026-11-14.md`](docs/mapping-session-2026-11-14.md).
+This repository also includes the bounded `safe_mapping_drive.py` experiment
+and `wheel_diagnostic.py` used during that session. They run directly on the Pi
+after sourcing ROS 2 Humble and the robot workspace. Do not run them alongside
+another motor controller process.
+
+**Current blocker:** neither wheel visibly moved during a 40% PWM pulse. The
+left encoder counted pulses while the robot remained stationary, and the right
+encoder stayed at zero. Check motor battery power and driver wiring before
+attempting autonomous floor mapping again.
+
 See `wiring_guide.md` for the exact pinout and electrical constraints.
 
 ## Hardware Wiring Specification
