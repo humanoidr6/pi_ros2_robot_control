@@ -51,10 +51,30 @@ and `wheel_diagnostic.py` used during that session. They run directly on the Pi
 after sourcing ROS 2 Humble and the robot workspace. Do not run them alongside
 another motor controller process.
 
-**Current blocker:** neither wheel visibly moved during a 40% PWM pulse. The
-left encoder counted pulses while the robot remained stationary, and the right
-encoder stayed at zero. Check motor battery power and driver wiring before
-attempting autonomous floor mapping again.
+Earlier wheel problems and encoder readings are recorded in
+[`docs/wheel-test-2026-11-16.md`](docs/wheel-test-2026-11-16.md). On 17 November,
+the operator confirmed both wheels moved at 40% PWM. Encoder feedback remains
+inconsistent. A later mapping run circled instead of covering the floor, so
+the operator switched to manual control.
+
+### Manual mapping remote (17 November 2026)
+
+[`remote_control/`](remote_control/README.md) now contains the desktop GUI and
+Raspberry Pi bridge used for manual mapping over Tailscale/SSH. It supports
+hold-to-drive buttons and W/A/S/D, a live map, emergency stop, and saving PGM,
+YAML, and Cartographer PBStream files. It runs on Linux and Windows via WSLg.
+
+The requested PWM range is 10–100%, with 100% initially selected. Right-wheel
+inversion is enabled to correct the reported Left/Reverse mismatch. Verify
+directions at low PWM before driving at full power. Command timeout, lidar
+freshness, and obstacle checks stop the bridge, but they do not guarantee
+stopping distance at full speed. Only one motor controller may run at a time.
+
+See [`docs/manual-mapping-2026-11-17.md`](docs/manual-mapping-2026-11-17.md) for
+the test results, laptop handover, and confirmed remote save paths. November 17
+maps remain on the offline Pi and are not included here. The files in `maps/`
+are historical November 14 snapshots. Complete-floor autonomous exploration
+and coverage verification are not implemented.
 
 See `wiring_guide.md` for the exact pinout and electrical constraints.
 
