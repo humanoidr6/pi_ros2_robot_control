@@ -2,8 +2,8 @@
 set -e
 
 echo "Installing system dependencies..."
-echo '12345' | sudo -S apt-get update
-echo '12345' | sudo -S apt-get install -y python3-rpi.gpio cmake pkg-config git build-essential
+sudo apt-get update
+sudo apt-get install -y python3-rpi.gpio cmake pkg-config git build-essential
 
 echo "Installing YDLidar SDK..."
 cd ~
@@ -14,7 +14,7 @@ if [ ! -d "YDLidar-SDK" ]; then
     cd build
     cmake ..
     make
-    echo '12345' | sudo -S make install
+    sudo make install
 else
     echo "YDLidar SDK already cloned."
 fi

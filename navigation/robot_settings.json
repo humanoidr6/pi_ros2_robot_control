@@ -1,0 +1,11 @@
+{
+  "width_m": null,
+  "length_m": null,
+  "wheel_base_m": null,
+  "measured_speed_at_full_pwm_mps": null,
+  "directions_verified": true,
+  "invert_left": false,
+  "invert_right": true,
+  "autonomous_max_pwm": 25.0,
+  "provisional_planning_radius_m": 0.35
+}

@@ -78,6 +78,17 @@ and coverage verification are not implemented.
 
 See `wiring_guide.md` for the exact pinout and electrical constraints.
 
+### Saved-map navigation preparation (18 November 2026)
+
+The new [`navigation/`](navigation/README.md) directory contains a Nav2 and
+Cartographer localization setup, a motor gate that defaults to dry-run, and a
+desktop destination/path-preview panel. The Pi's planner and navigator reached
+ready state; hardware navigation has **not** been validated or enabled.
+
+Read [`docs/HANDOFF-2026-11-18.md`](docs/HANDOFF-2026-11-18.md) for the exact
+deployment state, backed-up 16:03 map, laptop file locations, missing physical
+measurements, and continuation plan. Map cleanup remains the user's task.
+
 ## Hardware Wiring Specification
 
 The tables below detail the GPIO pin mappings and power distribution requirements linking the Raspberry Pi 4, the IBT-2 motor drivers, and the Hall-effect encoders. All logic connections utilize standard BCM numbering. Physical board pin numbers are provided for reference.
