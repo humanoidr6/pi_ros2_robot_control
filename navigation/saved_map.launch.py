@@ -66,11 +66,16 @@ def setup(context):
         regulated_linear_scaling_min_speed=0.03, use_rotate_to_heading=True,
         allow_reversing=False, rotate_to_heading_min_angle=0.5, max_angular_accel=0.4)
     radius = settings['provisional_planning_radius_m']
-    if settings.get('width_m') and settings.get('length_m'):
+    if settings.get('base_frame_verified') and settings.get('width_m') and settings.get('length_m'):
         radius = math.hypot(settings['width_m'], settings['length_m'])/2
     for name in ('local_costmap', 'global_costmap'):
         costmap = params[name][name]['ros__parameters']
         costmap['robot_radius'] = float(radius)
+        if settings.get('base_frame_verified') and settings.get('footprint_about_axle_midpoint_m'):
+            footprint = settings['footprint_about_axle_midpoint_m']
+            costmap['footprint'] = json.dumps(footprint)
+            costmap['footprint_padding'] = 0.02
+            radius = max(math.hypot(*point) for point in footprint)
         costmap['transform_tolerance'] = 0.3
         costmap['inflation_layer']['inflation_radius'] = max(0.65, radius+0.25)
         if name == 'local_costmap':

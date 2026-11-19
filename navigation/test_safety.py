@@ -6,7 +6,7 @@ from safety import gate_reason, missing_calibration, pixel_to_world, velocity_to
 class NavigationSafetyTests(unittest.TestCase):
     def settings(self):
         return dict(width_m=0.4, length_m=0.5, wheel_base_m=0.3,
-                    measured_speed_at_full_pwm_mps=1.0, directions_verified=True,
+                    measured_speed_at_full_pwm_mps=1.0, directions_verified=True, base_frame_verified=True,
                     invert_left=False, invert_right=True, autonomous_max_pwm=25.0)
 
     def test_missing_measurements_block_hardware(self):
@@ -17,6 +17,10 @@ class NavigationSafetyTests(unittest.TestCase):
     def test_direction_confirmation_required(self):
         s = self.settings(); s['directions_verified'] = False
         self.assertIn('directions_verified', missing_calibration(s))
+
+    def test_base_frame_confirmation_required(self):
+        s = self.settings(); s['base_frame_verified'] = False
+        self.assertTrue(any(v.startswith('base_frame_verified') for v in missing_calibration(s)))
 
     def test_pwm_keeps_right_inversion(self):
         self.assertEqual(velocity_to_pwm(0.1, 0, self.settings()), (10., -10.))

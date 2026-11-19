@@ -10,6 +10,8 @@ def missing_calibration(settings):
             missing.append(name)
     if settings.get('directions_verified') is not True:
         missing.append('directions_verified')
+    if settings.get('base_frame_verified') is not True:
+        missing.append('base_frame_verified (lidar/base/axle alignment)')
     cap = settings.get('autonomous_max_pwm')
     if not isinstance(cap, (int, float)) or not math.isfinite(cap) or not 0 < cap <= 40:
         missing.append('autonomous_max_pwm (must be 0–40)')

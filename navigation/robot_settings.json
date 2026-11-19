@@ -1,11 +1,33 @@
 {
-  "width_m": null,
-  "length_m": null,
-  "wheel_base_m": null,
+  "width_m": 0.4196,
+  "length_m": 0.45,
+  "wheel_base_m": 0.3846,
   "measured_speed_at_full_pwm_mps": null,
   "directions_verified": true,
   "invert_left": false,
   "invert_right": true,
   "autonomous_max_pwm": 25.0,
-  "provisional_planning_radius_m": 0.35
+  "provisional_planning_radius_m": 0.4,
+  "height_m": 0.227921,
+  "wheel_radius_m": 0.045,
+  "geometry_source": "assem1_description; see body_geometry.json",
+  "base_frame_verified": false,
+  "footprint_about_axle_midpoint_m": [
+    [
+      -0.33575,
+      -0.2098
+    ],
+    [
+      0.11425,
+      -0.2098
+    ],
+    [
+      0.11425,
+      0.2098
+    ],
+    [
+      -0.33575,
+      0.2098
+    ]
+  ]
 }

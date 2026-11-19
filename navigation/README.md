@@ -85,6 +85,14 @@ Nav2 readiness now checks lifecycle state as well as action-server existence.
 Both behavior trees avoid unavailable automatic recovery actions. Goal
 acceptances arriving after a Stop request are cancelled using generation tokens.
 
+## CAD dimensions
+
+The supplied assembly provides a 45.0 × 41.96 cm body envelope, 9 cm wheels and
+38.46 cm tyre-centre separation. See [the geometry report](../docs/BODY-GEOMETRY-2026-11-19.md)
+for source hashes, reference-frame offsets and deployment status. These values
+are in `robot_settings.json`; speed calibration and lidar/base alignment remain
+unverified. Hardware drive stays blocked until both are resolved.
+
 ## Tests without motion
 
 ```bash

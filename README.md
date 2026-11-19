@@ -94,6 +94,10 @@ records the verified planner-only route, laptop navigation panel deployment,
 startup/cancellation fixes, and switch to the user-selected B4 corridor map
 with AMCL. Autonomous motor output remains disabled.
 
+The [CAD geometry report](docs/BODY-GEOMETRY-2026-11-19.md) records the supplied
+body dimensions, wheel separation, axle offset and remaining lidar alignment
+requirement. Geometry updates are not yet deployed to the live robot.
+
 ## Hardware Wiring Specification
 
 The tables below detail the GPIO pin mappings and power distribution requirements linking the Raspberry Pi 4, the IBT-2 motor drivers, and the Hall-effect encoders. All logic connections utilize standard BCM numbering. Physical board pin numbers are provided for reference.
