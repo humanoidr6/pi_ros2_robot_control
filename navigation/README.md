@@ -1,8 +1,9 @@
 # Saved-map navigation — commissioning in progress
 
-**Hardware drive is disabled by default.** The planner and navigator reached
-ready state on the Raspberry Pi, but a successful path result, physical pose
-alignment, calibration and autonomous route have not yet been verified.
+**Hardware drive is disabled by default.** On November 19, all Nav2 lifecycle
+nodes activated and a 7.46 m path was verified on the previous map without motor
+movement. The user then selected a larger standalone B4 corridor YAML/PGM map.
+Physical pose alignment, calibration and autonomous driving remain unverified.
 
 Read [the November 18 handoff](../docs/HANDOFF-2026-11-18.md) before continuing.
 It records the live deployment, map backups, remaining work, and safety limits.
@@ -55,8 +56,34 @@ The panel shows robot pose and live lidar points for alignment checks.
 
 Setting the robot pose, confirming alignment and arming are distinct operations.
 In dry-run mode, Go and Arm remain disabled. Space/Stop cancels and disarms.
-The desktop panel implementation is not yet integration-tested or installed on
-the laptop; see the handoff for deployment instructions.
+The desktop panel is installed on `laptop-o5rgnbqb`; open **Robot Navigation.cmd**
+on the Windows desktop. Live robot testing is still required for localization,
+named destinations and actual driving.
+
+## Standalone B4 map (current selection)
+
+The user supplied `b4_corridor_map.yaml` and `.pgm`. They have different map
+dimensions and origin from the previous PBStream map. Do not pair the B4 image
+with the old map-to-odom transform. Use AMCL on the B4 occupancy grid instead:
+
+```bash
+ros2 launch ./navigation/saved_map.launch.py \
+  localization:=amcl hardware:=false \
+  map:=$HOME/maps/b4_corridor/b4_corridor_map.yaml
+```
+
+In this mode, Cartographer supplies continuous **odom→base_link** using local
+lidar matching without a loaded PBStream or loop closures. AMCL supplies
+**map→odom**. The TF-to-Odometry adapter remains lidar-derived; it is not
+calibrated wheel feedback. AMCL waits for a user-supplied initial pose. On the
+desktop map, select the actual robot location, enter its heading, and click
+**Set robot pose at selected point**. Verify lidar points align with real map
+walls before confirming localization. Never use a test-start point as evidence
+of the physical robot position.
+
+Nav2 readiness now checks lifecycle state as well as action-server existence.
+Both behavior trees avoid unavailable automatic recovery actions. Goal
+acceptances arriving after a Stop request are cancelled using generation tokens.
 
 ## Tests without motion
 

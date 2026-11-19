@@ -6,6 +6,7 @@ from pathlib import Path
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from goal_state import GoalState
 
 
 def main():
@@ -14,16 +15,18 @@ def main():
     from rclpy.node import Node
     from rclpy.action import ActionClient
     from rclpy.time import Time
-    from geometry_msgs.msg import PoseStamped
+    from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped
     from std_msgs.msg import String
     from sensor_msgs.msg import LaserScan
     from rclpy.qos import qos_profile_sensor_data
     from std_srvs.srv import SetBool
     from nav2_msgs.action import ComputePathToPose, NavigateToPose
+    from lifecycle_msgs.srv import GetState
     from cartographer_ros_msgs.srv import StartTrajectory, FinishTrajectory, GetTrajectoryStates, TrajectoryQuery
     from tf2_ros import Buffer, TransformListener
     parser = argparse.ArgumentParser()
     parser.add_argument('--map', required=True)
+    parser.add_argument('--localization', choices=('cartographer', 'amcl'), default='cartographer')
     args, ros_args = parser.parse_known_args()
     map_path = Path(args.map).resolve()
     meta = yaml.safe_load(map_path.read_text())
@@ -33,6 +36,7 @@ def main():
     node = Node('navigation_desktop_api')
     tf = Buffer()
     listener = TransformListener(tf, node)
+    initial_pose_pub = node.create_publisher(PoseWithCovarianceStamped, '/initialpose', 10)
     plan_client = ActionClient(node, ComputePathToPose, '/compute_path_to_pose')
     goal_client = ActionClient(node, NavigateToPose, '/navigate_to_pose')
     arm_client = node.create_client(SetBool, '/navigation/arm')
@@ -43,7 +47,34 @@ def main():
     start_client = node.create_client(StartTrajectory, '/start_trajectory')
     lock = threading.RLock()
     operations = threading.Lock()
-    state = dict(drive={}, drive_at=0., goal='No goal', handle=None, scan=None)
+    state = dict(drive={}, drive_at=0., goal='No goal', scan=None)
+    goals = GoalState()
+    lifecycle_clients = {name: node.create_client(GetState, f'/{name}/get_state')
+                         for name in ('planner_server', 'bt_navigator')}
+    lifecycle = {name: (False, 0.) for name in lifecycle_clients}
+    lifecycle_pending = {}
+
+    def check_lifecycle():
+        for name, client in lifecycle_clients.items():
+            pending = lifecycle_pending.get(name)
+            if pending is not None and not pending.done():
+                continue
+            if not client.service_is_ready():
+                continue
+            future = client.call_async(GetState.Request())
+            lifecycle_pending[name] = future
+            def received(f, name=name):
+                try:
+                    with lock:
+                        lifecycle[name] = (f.result().current_state.id == 3, time.monotonic())
+                except Exception:
+                    pass
+            future.add_done_callback(received)
+    node.create_timer(1.0, check_lifecycle)
+
+    def active(name):
+        enabled, checked_at = lifecycle[name]
+        return enabled and time.monotonic()-checked_at < 3
 
     def drive(msg):
         with lock:
@@ -69,12 +100,13 @@ def main():
         except Exception:
             return []
 
-    def wait(future, timeout=15):
+    def wait(future, timeout=15, cancel_on_timeout=True):
         end = time.monotonic()+timeout
         while not future.done() and time.monotonic() < end:
             time.sleep(0.02)
         if not future.done():
-            future.cancel()
+            if cancel_on_timeout:
+                future.cancel()
             raise RuntimeError('ROS operation timed out')
         return future.result()
 
@@ -112,18 +144,30 @@ def main():
             return None
 
     def cancel():
-        set_bool(arm_client, False)
+        # Invalidate pending acceptances before waiting for the disarm service.
+        handle = goals.stop()
         with lock:
-            handle = state['handle']
-            state['handle'] = None
             state['goal'] = 'Cancelled / disarmed'
-        if handle:
-            wait(handle.cancel_goal_async(), 5)
+        try:
+            set_bool(arm_client, False)
+        finally:
+            if handle:
+                wait(handle.cancel_goal_async(), 5)
 
     def localize(data):
         cancel()
         set_bool(confirm_client, False)
         desired = pose(data)
+        if args.localization == 'amcl':
+            if initial_pose_pub.get_subscription_count() == 0:
+                raise RuntimeError('AMCL is not ready for an initial pose')
+            initial = PoseWithCovarianceStamped()
+            initial.header = desired.header
+            initial.pose.pose = desired.pose
+            initial.pose.covariance[0] = initial.pose.covariance[7] = 0.25
+            initial.pose.covariance[35] = math.radians(15)**2
+            initial_pose_pub.publish(initial)
+            return {'message': 'Initial pose sent to AMCL. Verify lidar alignment before confirming localization.'}
         response = service(states_client, GetTrajectoryStates.Request())
         frozen = [i for i, s in zip(response.trajectory_states.trajectory_id, response.trajectory_states.trajectory_state) if s == 2]
         if not frozen:
@@ -178,8 +222,9 @@ def main():
                         drive = dict(state['drive'])
                         if time.monotonic()-state['drive_at'] > 1:
                             drive.update(armed=False, reason='Motor gate unavailable')
-                        self.reply(dict(pose=robot_pose(), scan=scan_points(), drive=drive, goal=state['goal'],
-                            planner_ready=plan_client.server_is_ready(), navigator_ready=goal_client.server_is_ready()))
+                        self.reply(dict(pose=robot_pose(), scan=scan_points(), drive=drive, goal=state['goal'], localization=args.localization,
+                            planner_ready=active('planner_server') and plan_client.server_is_ready(),
+                            navigator_ready=active('bt_navigator') and goal_client.server_is_ready()))
                 elif self.path == '/map':
                     self.reply(meta)
                 elif self.path == '/map.pgm':
@@ -230,29 +275,54 @@ def main():
                 with lock:
                     if time.monotonic()-state['drive_at'] > 1 or not state['drive'].get('armed'):
                         raise RuntimeError('Drive is not armed; use Plan path for non-moving tests')
-                    if state['handle'] is not None:
-                        raise RuntimeError('Cancel the current goal before sending another')
                 goal = NavigateToPose.Goal()
                 goal.pose = pose(data)
-                if not goal_client.wait_for_server(timeout_sec=3):
-                    raise RuntimeError('Navigator not ready')
-                handle = wait(goal_client.send_goal_async(goal))
-                if not handle.accepted:
-                    raise RuntimeError('Navigator rejected goal')
-                with lock:
-                    state['handle'] = handle
-                    state['goal'] = 'Navigating'
-                def completed(f):
-                    with lock:
-                        state['goal'] = 'Reached goal' if f.result().status == 4 else 'Goal ended: '+str(f.result().status)
-                        state['handle'] = None
-                    # Async disarm avoids blocking the ROS executor callback.
-                    req = SetBool.Request(); req.data = False
-                    arm_client.call_async(req)
-                handle.get_result_async().add_done_callback(completed)
-                return {'message': 'Goal accepted'}
+                ticket = goals.reserve()
+                def accepted(f):
+                    try:
+                        handle = f.result()
+                        if not handle.accepted:
+                            goals.rejected(ticket)
+                            return
+                        if not goals.accepted(ticket, handle):
+                            handle.cancel_goal_async()
+                            return
+                        with lock:
+                            state['goal'] = 'Navigating'
+                        def completed(result_future):
+                            if not goals.completed(handle):
+                                return
+                            with lock:
+                                status = result_future.result().status
+                                state['goal'] = 'Reached goal' if status == 4 else 'Goal ended: '+str(status)
+                            req = SetBool.Request(); req.data = False
+                            arm_client.call_async(req)
+                        handle.get_result_async().add_done_callback(completed)
+                    except Exception:
+                        goals.rejected(ticket)
+                try:
+                    if not goal_client.wait_for_server(timeout_sec=3):
+                        raise RuntimeError('Navigator not ready')
+                    future = goal_client.send_goal_async(goal)
+                    future.add_done_callback(accepted)
+                    # Keep the future alive so a late acceptance can be cancelled.
+                    handle = wait(future, cancel_on_timeout=False)
+                    if not handle.accepted:
+                        raise RuntimeError('Navigator rejected goal')
+                    with goals.lock:
+                        if ticket != goals.epoch or goals.stopped:
+                            raise RuntimeError('Goal was stopped before acceptance completed')
+                    return {'message': 'Goal accepted'}
+                except Exception:
+                    cancel()
+                    raise
             if self.path == '/arm':
-                return {'message': set_bool(arm_client, True)}
+                ticket = goals.arm_ticket()
+                message = set_bool(arm_client, True)
+                if not goals.armed(ticket):
+                    set_bool(arm_client, False)
+                    raise RuntimeError('Arm request interrupted by Stop')
+                return {'message': message}
             if self.path == '/confirm-localization':
                 return {'message': set_bool(confirm_client, True)}
             if self.path == '/initialpose':

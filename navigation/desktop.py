@@ -90,8 +90,10 @@ class Panel:
         ttk.Button(left, text='Set robot pose at selected point', command=self.initial_pose).pack(fill='x', pady=(16, 4))
         ttk.Button(left, text='Confirm lidar / map alignment', command=self.confirm).pack(fill='x', pady=4)
         self.arm_button = ttk.Button(left, text='Arm navigation drive', command=lambda: self.action('/arm', {}))
+        self.arm_button.state(['disabled'])
         self.arm_button.pack(fill='x', pady=4)
         self.go_button = ttk.Button(left, text='Go to selected destination', command=self.go)
+        self.go_button.state(['disabled'])
         self.go_button.pack(fill='x', pady=4)
         tk.Button(left, text='STOP / CANCEL', bg='#bf2737', fg='white', font=('Sans', 14, 'bold'),
                   command=lambda: self.action('/stop', {}), height=2).pack(fill='x', pady=8)
@@ -268,6 +270,7 @@ class Panel:
                 elif kind == 'error':
                     self.message.set(value)
                     self.go_button.state(['disabled'])
+                    self.arm_button.state(['disabled'])
                 self.draw()
         except queue.Empty:
             pass

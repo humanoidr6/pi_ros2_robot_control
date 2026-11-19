@@ -89,6 +89,11 @@ Read [`docs/HANDOFF-2026-11-18.md`](docs/HANDOFF-2026-11-18.md) for the exact
 deployment state, backed-up 16:03 map, laptop file locations, missing physical
 measurements, and continuation plan. Map cleanup remains the user's task.
 
+Latest: [`docs/CONTINUATION-2026-11-19.md`](docs/CONTINUATION-2026-11-19.md)
+records the verified planner-only route, laptop navigation panel deployment,
+startup/cancellation fixes, and switch to the user-selected B4 corridor map
+with AMCL. Autonomous motor output remains disabled.
+
 ## Hardware Wiring Specification
 
 The tables below detail the GPIO pin mappings and power distribution requirements linking the Raspberry Pi 4, the IBT-2 motor drivers, and the Hall-effect encoders. All logic connections utilize standard BCM numbering. Physical board pin numbers are provided for reference.
